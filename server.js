@@ -28,7 +28,7 @@ const PORT = process.env.PORT;
 
 app.use(
   cors({
-    origin: "http://localhost:5174",
+    origin: "https://choicexactly-frontend.vercel.app/",
     methods: ["GET", "POST", "DELETE", "PUT"],
     allowedHeaders: [
       "Content-Type",
