@@ -26,9 +26,24 @@ mongoose
 const app = express();
 const PORT = process.env.PORT;
 
+// const cors = require("cors");
+
+const allowedOrigins = [
+  "https://choicexactly-frontend.vercel.app/",
+  "http://localhost:5173",
+];
+
 app.use(
   cors({
-    origin: "https://choicexactly-frontend.vercel.app",
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST", "DELETE", "PUT"],
     allowedHeaders: [
       "Content-Type",
@@ -40,6 +55,7 @@ app.use(
     credentials: true,
   })
 );
+
 
 app.use(cookieParser());
 app.use(express.json());
