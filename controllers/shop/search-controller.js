@@ -3,6 +3,7 @@ const Product = require("../../models/Product");
 const searchProducts = async (req, res) => {
   try {
     const { keyword } = req.params;
+    
     if (!keyword || typeof keyword !== "string") {
       return res.status(400).json({
         succes: false,
@@ -17,7 +18,7 @@ const searchProducts = async (req, res) => {
         { title: regEx },
         { description: regEx },
         { category: regEx },
-        { brand: regEx },
+        // { brand: regEx },
       ],
     };
 

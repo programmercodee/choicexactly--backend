@@ -2,6 +2,7 @@ const paypal = require("../../helpers/paypal");
 const Order = require("../../models/Order");
 const Cart = require("../../models/Cart");
 const Product = require("../../models/Product");
+const razorpay = require("../../helpers/razorpay");
 
 const createOrder = async (req, res) => {
   try {
@@ -147,6 +148,60 @@ const capturePayment = async (req, res) => {
   }
 };
 
+const captureRazorpayPayment = async (req, res) => {
+  try {
+    const { paymentId, payerId, orderData } = req.body;
+
+    const newlyCreatedOrder = new Order({
+      ...orderData,
+      paymentStatus: "paid",
+      orderStatus: "confirmed",
+      paymentId,
+      payerId,
+    });
+
+    await newlyCreatedOrder.save();
+
+    // Deduct stock
+    for (let item of orderData.cartItems) {
+      let product = await Product.findById(item.productId);
+
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          message: `Product not found for ID: ${item.productId}`,
+        });
+      }
+
+      if (product.totalStock < item.quantity) {
+        return res.status(400).json({
+          success: false,
+          message: `Not enough stock for ${product.title}`,
+        });
+      }
+
+      product.totalStock -= item.quantity;
+      await product.save();
+    }
+
+    // Delete the cart
+    await Cart.findByIdAndDelete(orderData.cartId);
+
+    res.status(200).json({
+      success: true,
+      message: "Razorpay order captured and saved",
+      data: newlyCreatedOrder,
+    });
+  } catch (e) {
+    console.error("Error in Razorpay capture:", e);
+    res.status(500).json({
+      success: false,
+      message: "Error capturing Razorpay order",
+    });
+  }
+};
+
+
 const getAllOrdersByUser = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -199,9 +254,43 @@ const getOrderDetails = async (req, res) => {
   }
 };
 
+
+
+
+const createRazorpayOrder = async (req, res) => {
+  try {
+    const { amount, currency = "INR" } = req.body;
+
+    const options = {
+      amount: amount, // in paise
+      currency,
+      receipt: `receipt_order_${Math.random() * 10000}`,
+    };
+
+    const order = await razorpay.orders.create(options);
+
+    return res.status(201).json({
+      success: true,
+      id: order.id,
+      currency: order.currency,
+      amount: order.amount,
+    });
+  } catch (error) {
+    console.error("Razorpay error", error);
+    return res.status(500).json({
+      success: false,
+      message: "Unable to create Razorpay order",
+    });
+  }
+};
+
+
+
 module.exports = {
   createOrder,
   capturePayment,
   getAllOrdersByUser,
   getOrderDetails,
+  createRazorpayOrder,
+  captureRazorpayPayment
 };
