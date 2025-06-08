@@ -3,9 +3,9 @@ const Product = require("../../models/Product");
 
 const addToCart = async (req, res) => {
   try {
-    const { userId, productId, quantity } = req.body;
-
-    if (!userId || !productId || quantity <= 0) {
+    const { userId, productId, quantity, size } = req.body;
+    // console.log(userId, productId, quantity, size)
+    if (!userId || !productId || quantity <= 0 || !size) {
       return res.status(400).json({
         success: false,
         message: "Invalid data provided!",
@@ -13,6 +13,7 @@ const addToCart = async (req, res) => {
     }
 
     const product = await Product.findById(productId);
+    // console.log(product, "product");
 
     if (!product) {
       return res.status(404).json({
@@ -22,6 +23,8 @@ const addToCart = async (req, res) => {
     }
 
     let cart = await Cart.findOne({ userId });
+    // console.log(cart, "cart");
+
 
     if (!cart) {
       cart = new Cart({ userId, items: [] });
@@ -32,11 +35,11 @@ const addToCart = async (req, res) => {
     );
 
     if (findCurrentProductIndex === -1) {
-      cart.items.push({ productId, quantity });
+      cart.items.push({ productId, quantity, size });
     } else {
       cart.items[findCurrentProductIndex].quantity += quantity;
     }
-
+    console.log(size,"size")
     await cart.save();
     res.status(200).json({
       success: true,
@@ -83,15 +86,17 @@ const fetchCartItems = async (req, res) => {
       await cart.save();
     }
 
-    const populateCartItems = validItems.map((item) => ({
+    const populateCartItems = validItems.map((item) => (
+
+      {
       productId: item.productId._id,
       image: item.productId.image,
       title: item.productId.title,
       price: item.productId.price,
       salePrice: item.productId.salePrice,
+      availableSizes: item.size,
       quantity: item.quantity,
     }));
-
     res.status(200).json({
       success: true,
       data: {
